@@ -87,6 +87,9 @@ details.mod summary small{font:400 12.5px var(--f-mono);color:var(--muted)}
 .tbl td.num,.tbl th.num{text-align:right;font-family:var(--f-mono)}
 .tbl tr:last-child td{border-bottom:0}
 .r-COMMON{color:var(--muted)}.r-UNCOMMON{color:var(--ink)}.r-RARE{color:var(--accent)}.r-EPIC{color:var(--accent);font-weight:600}.r-LEGENDARY{color:var(--warn);font-weight:600}
+.tbl th[scope="row"]{font:500 13px var(--f-body);letter-spacing:0;text-transform:none;color:var(--ink);border-bottom:1px solid var(--line)}
+.tbl tr.sep th{background:var(--accent-soft);color:var(--accent);font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;padding:6px 10px}
+.foot{margin:0;color:var(--muted);font-size:12.5px}
 </style>
 
 <div class="wrap">
@@ -285,19 +288,34 @@ function viewTools(){
 }
 
 function viewCombo(){
-  const C = D.combo, ORDER = ["D","C","B","A","S","SS"];
+  const C = D.combo, O = ["D","C","B","A","S","SS"], P = C.pointsPerMob;
   const modAt = k => { let m = 1; C.mods.forEach(([c,v])=>{ if (k>=c) m = v; }); return m; };
-  const killsFor = th => { let k = 1; while (Math.round(C.pointsPerMob*k*modAt(k)) < th) k++; return k; };
+  const killsFor = th => { let k = 1; while (Math.round(P*k*modAt(k)) < th) k++; return k; };
   const rng = r => { if (!r) return "–"; const hi = r[1]>r[0] ? r[1]-1 : r[1]; return r[0]===hi ? String(r[0]) : r[0]+"–"+hi; };
-  const modRows = [[0,1]].concat(C.mods).map(([k,m],i,a)=>'<tr><td class="num">ab '+k+' Kills</td><td class="num">× '+loc(m,2)+'</td><td class="num">'+(i+1<a.length?"bis "+(a[i+1][0]-1)+" Kills":"darüber")+'</td></tr>').join("");
-  const head = '<tr><th>Truhe</th><th class="num">Punkte</th><th class="num">Kills in einer Serie</th><th class="num">Kills ohne Bonus</th><th class="num">Münzen / XP</th><th class="num">Gewöhnlich</th><th class="num">Ungewöhnlich</th><th class="num">Selten</th><th class="num">Episch</th><th class="num">Legendär</th><th class="num">Baupläne</th></tr>';
-  const rows = ORDER.map(k=>{ const T = C.tiers[k], R = T.rewards;
-    return '<tr><td><b>'+k+'</b></td><td class="num">'+n(T.points)+'</td><td class="num">ca. '+n(killsFor(T.points))+'</td><td class="num">'+n(T.points/C.pointsPerMob)+'</td><td class="num">× '+rng(R.COIN)+'</td><td class="num">× '+rng(R.MATERIAL_COMMON)+'</td><td class="num">'+(R.MATERIAL_UNCOMMON?"× "+rng(R.MATERIAL_UNCOMMON):"–")+'</td><td class="num">'+(R.MATERIAL_RARE?"× "+rng(R.MATERIAL_RARE):"–")+'</td><td class="num">'+(R.MATERIAL_EPIC?"× "+rng(R.MATERIAL_EPIC):"–")+'</td><td class="num">'+(R.MATERIAL_LEGENDARY?"× "+rng(R.MATERIAL_LEGENDARY):"–")+'</td><td class="num">'+(R.BLUEPRINT?rng(R.BLUEPRINT):"–")+'</td></tr>'; }).join("");
-  return '<div class="info" style="margin-top:0"><b>So funktioniert es:</b> Jeder Kill gibt '+C.pointsPerMob+' Punkte. Eine Serie endet, wenn '+(C.duration/1000)+' Sekunden lang kein Mob stirbt. Dann werden die Serien-Punkte mit dem Multiplikator der Serienlänge (Tabelle unten) verrechnet und zur Truhe addiert. Ob die nächste Truhenstufe erreicht ist, wird erst am Serienende geprüft. Geöffnet wird die Truhe beim Floor-Wechsel. Event-Boni und Punkte von Rare Mobs sind hier nicht eingerechnet.</div>'
-    +'<h3 class="grp">Truhen und Belohnungen</h3><div class="tbl"><table>'+head+rows+'</table></div>'
-    +'<p class="note" style="margin:0">Münzen, XP und Materialien sind <b>Vielfache der normalen Drops des Mobs auf dem Floor</b>, auf dem die Truhe geöffnet wird. Beispiel: „× 126–149“ bei Münzen heißt, dass die Münzmenge des Mobs mit einer Zahl aus diesem Bereich multipliziert wird. Die Obergrenze ist nie dabei (der Zufallswert ist exklusiv). Bei den Bauplänen sind es die Baupläne aus der Drop-Liste dieses Mobs, und Baupläne, die du noch nie hattest, sind '+C.factor+'-mal wahrscheinlicher.</p>'
-    +'<h3 class="grp">Serien-Multiplikator</h3><div class="tbl"><table style="min-width:420px"><tr><th class="num">Serienlänge</th><th class="num">Multiplikator</th><th class="num">Bereich</th></tr>'+modRows+'</table></div>'
-    +'<p class="note" style="margin:0">„Kills in einer Serie“ gilt für eine einzige Serie ohne Pause von über '+(C.duration/1000)+' Sekunden. Mehrere kürzere Serien addieren sich, sind wegen des kleineren Multiplikators aber weniger effizient. Zum Beispiel braucht Truhe SS in einer Serie ca. '+n(killsFor(C.tiers.SS.points))+' Kills, ohne jeden Bonus wären es '+n(C.tiers.SS.points/C.pointsPerMob)+'. Quelle ist die aktive Combo-Chest-Config aus dem DB-Export, nicht die Code-Defaults.</p>';
+  const mult = r => r ? "× "+rng(r) : "–";
+  const row = (label,f,cls) => '<tr><th scope="row">'+label+'</th>'+O.map(k=>'<td class="num'+(cls||"")+'">'+f(C.tiers[k],k)+'</td>').join("")+'</tr>';
+  const sep = label => '<tr class="sep"><th colspan="7">'+label+'</th></tr>';
+  const chest = '<table><tr><th></th>'+O.map(k=>'<th class="num">'+k+'</th>').join("")+'</tr>'
+    + sep("Freischalten")
+    + row("Punkte",T=>n(T.points))
+    + row("Kills in einer Serie",T=>"ca. "+n(killsFor(T.points)))
+    + row("Kills ohne Bonus",T=>n(T.points/P))
+    + sep("Belohnung (Vielfache der Mob-Drops)")
+    + row("Münzen / XP",T=>mult(T.rewards.COIN))
+    + row("Material gewöhnlich",T=>mult(T.rewards.MATERIAL_COMMON))
+    + row("Material ungewöhnlich",T=>mult(T.rewards.MATERIAL_UNCOMMON))
+    + row("Material selten",T=>mult(T.rewards.MATERIAL_RARE))
+    + row("Material episch",T=>mult(T.rewards.MATERIAL_EPIC))
+    + row("Material legendär",T=>mult(T.rewards.MATERIAL_LEGENDARY))
+    + row("Baupläne",T=>T.rewards.BLUEPRINT ? rng(T.rewards.BLUEPRINT) : "–")
+    + '</table>';
+  const ms = [[0,1]].concat(C.mods);
+  const mods = '<table style="min-width:0"><tr><th>Serienlänge (Kills)</th>'+ms.map(([k])=>'<th class="num">'+k+'+</th>').join("")+'</tr><tr><th scope="row">Multiplikator</th>'+ms.map(([,m])=>'<td class="num">× '+loc(m,2)+'</td>').join("")+'</tr></table>';
+  const facts = '<table style="min-width:0"><tr><th scope="row">Punkte pro Kill</th><td class="num">'+P+'</td><th scope="row">Serie endet nach</th><td class="num">'+(C.duration/1000)+' s ohne Kill</td><th scope="row">Neue Baupläne</th><td class="num">'+C.factor+'× Chance</td></tr></table>';
+  return '<h3 class="grp">Grundwerte</h3><div class="tbl">'+facts+'</div>'
+    +'<h3 class="grp">Serien-Multiplikator</h3><div class="tbl">'+mods+'</div>'
+    +'<h3 class="grp">Truhen</h3><div class="tbl">'+chest+'</div>'
+    +'<p class="foot">Stufe wird am Serienende geprüft, geöffnet beim Floor-Wechsel. Event-Boni und Rare-Mob-Punkte fehlen. Obergrenze der Spannen exklusiv. Quelle: DB-Export.</p>';
 }
 const TABS = [["tasche","Gadget-Tasche",viewBag],["gadgets","Gadgets",viewGadgets],["voll","Komplettwege",viewFull],["schwerter","Schwerter",viewSwords],["tools","Werkzeuge",viewTools],["combo","Combo-Chest",viewCombo],["baum","Übersicht",viewTree]];
 let tab = "gadgets";
