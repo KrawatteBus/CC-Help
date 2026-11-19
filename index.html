@@ -1,0 +1,271 @@
+<title>Engineer Freischaltbaum</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Blaupause. Kopf, Reiter, dann je Reiter Spuren (eine Zeile pro Gadget) und darunter ein Detailblatt mit der kompletten Kette. */
+:root{
+  --bg:#eef2f6; --paper:#f8fafc; --ink:#14202e; --muted:#5a6b7d; --line:#c5d0dc;
+  --accent:#1f5fbf; --accent-soft:#dce8f8; --warn:#b4401a; --warn-soft:#fbe6dd;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1420; --paper:#121e2d; --ink:#e4ecf5; --muted:#8fa2b6; --line:#27384c;
+  --accent:#6ea8ff; --accent-soft:#17304f; --warn:#ff9a6e; --warn-soft:#3a2216; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1420; --paper:#121e2d; --ink:#e4ecf5; --muted:#8fa2b6; --line:#27384c;
+  --accent:#6ea8ff; --accent-soft:#17304f; --warn:#ff9a6e; --warn-soft:#3a2216; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(30px,5vw,44px);letter-spacing:.01em;margin:0;text-wrap:balance;line-height:1.05}
+header p{margin:6px 0 0;color:var(--muted);max-width:68ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tab{font:600 15px var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:focus-visible,.node:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12.5px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border:2px solid var(--accent);display:inline-block}
+.sw.l0{border-style:dashed}.sw.bad{border-color:var(--warn);background:var(--warn-soft)}
+.lanes{display:flex;flex-direction:column;gap:14px}
+.lane{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px;align-items:start}
+.lane h3{font-family:var(--f-display);font-size:21px;font-weight:600;margin:6px 0 0;line-height:1.1}
+.lane h3 small{display:block;font:400 11.5px var(--f-body);color:var(--muted);margin-top:3px;letter-spacing:0}
+.grp{font:600 13px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:8px 0 0}
+.rail{display:flex;gap:0;overflow-x:auto;padding:4px 2px 8px}
+.step{display:flex;align-items:center}
+.step:not(:last-child)::after{content:"";width:18px;height:2px;background:var(--line);flex:none}
+.node{width:132px;flex:none;text-align:left;background:var(--paper);border:2px solid var(--accent);color:var(--ink);padding:7px 9px;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px}
+.node.l0{border-style:dashed}
+.node.bad{border-color:var(--warn);background:var(--warn-soft)}
+.node[aria-pressed="true"]{background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft),0 0 0 4px var(--accent)}
+.node b{font:600 16px var(--f-display);letter-spacing:.04em}
+.node span{font:12px var(--f-mono);color:var(--muted)}
+.node em{font:500 11.5px var(--f-body);font-style:normal;color:var(--accent)}
+.node.bad em{color:var(--warn)}
+.sheet{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--accent);padding:18px;display:flex;flex-direction:column;gap:14px}
+.sheet h2{font-family:var(--f-display);font-weight:600;font-size:26px;margin:0}
+.sheet h2 small{font:400 13px var(--f-mono);color:var(--muted);margin-left:8px}
+.chain{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.chain li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding-bottom:14px;position:relative}
+.chain li:not(:last-child)::before{content:"";position:absolute;left:13px;top:26px;bottom:0;width:2px;background:var(--line)}
+.dot{width:28px;height:28px;border:2px solid var(--accent);display:grid;place-items:center;font:600 12px var(--f-mono);color:var(--accent);background:var(--paper)}
+.chain h4{margin:2px 0 2px;font-size:14px;font-weight:600}
+.chain p{margin:0;color:var(--muted)}
+.kv{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+.tag{display:inline-block;font:500 11px var(--f-mono);border:1px solid var(--line);padding:0 5px;margin:2px 4px 0 0;color:var(--muted)}
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);padding:8px 12px;font-size:13px}
+.info{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;font-size:13px;margin-top:14px}
+.tree{font-family:var(--f-mono);font-size:12.5px;white-space:pre;overflow-x:auto;background:var(--paper);border:1px solid var(--line);padding:16px;line-height:1.55}
+.tree b{color:var(--accent);font-weight:500}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.scroll{overflow-x:auto}
+.bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.btn{font:600 13px var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:var(--paper);color:var(--accent);border:1px solid var(--accent);padding:6px 12px;cursor:pointer}
+.btn:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.mod{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--accent);margin-bottom:10px}
+details.mod summary{cursor:pointer;padding:12px 16px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;list-style:none}
+details.mod summary::-webkit-details-marker{display:none}
+details.mod summary::before{content:"+";font:600 18px var(--f-mono);color:var(--accent);width:16px}
+details.mod[open] summary::before{content:"\2212"}
+.mn{font:600 22px var(--f-display)}
+details.mod summary small{font:400 12.5px var(--f-mono);color:var(--muted)}
+.mb{padding:4px 18px 8px;border-top:1px solid var(--line)}
+.lvl{font:600 15px var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:16px 0 10px}
+.lvl small{font:400 11.5px var(--f-mono);color:var(--muted);margin-left:8px;letter-spacing:0;text-transform:none}
+@media (max-width:700px){.lane{grid-template-columns:1fr;gap:4px}.lane h3{margin:0}}
+@media (prefers-reduced-motion:no-preference){.node{transition:background .12s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Engineer Freischaltbaum</h1>
+    <p>Alles, was der Hub-Engineer anbietet: die sechs Slots der Gadget-Tasche und alle 15 Gadgets mit ihren Bauplänen. Ein Klick auf eine Stufe zeigt die ganze Kette bis zur ersten Collection. Quelle sind die Default-Konfigurationen im Code (Branch feature/biomeedit-review), die Konfigurationen in der DB können abweichen.</p>
+  </header>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="legend">
+    <span><i class="sw"></i> Stufe per Blueprint</span>
+    <span><i class="sw l0"></i> Einmal freischalten, danach Level durch Fortschritt</span>
+    <span><i class="sw bad"></i> Blueprint ist im Code nicht erreichbar</span>
+  </div>
+  <div id="view"></div>
+  <section class="sheet" id="sheet" aria-live="polite"></section>
+</div>
+
+<script>
+const D = {"gadgets":{"WOOD_CUTTER":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":1,"costs":{"coins":120000,"materials":{"WOOL_THREAD":700,"PIG_TAIL_TASSEL":340,"COW_BONE":150,"RABBIT_EAR":30,"SHEEP_MANE":12},"resources":{"OAK_WOOD":2000}}},{"level":2,"costs":{"coins":570000,"materials":{"HORSE_HAIR":1400,"LLAMA_FUR":560,"DONKEY_BONE":170,"SHEEP_BELL":50,"CAMEL_HOOF":15},"resources":{"JUNGLE_WOOD":4200}}},{"level":3,"costs":{"coins":1440000,"materials":{"GOAT_HAIR":2000,"OCELOT_SKIN":800,"PINK_PIG_EAR":200,"LLAMA_BONE":70,"HORSE_SHOE":27},"resources":{"SPRUCE_WOOD":5700}}},{"level":4,"costs":{"coins":2270000,"materials":{"CARAPACE_SCALE":3000,"PANDA_FUR":1200,"GOAT_BONE":220,"DONKEY_HOOF":90,"COW_HORN":39},"resources":{"BAMBOO":6200}}},{"level":5,"costs":{"coins":4730000,"materials":{"CRACKED_CHITIN":4000,"WOLF_PELT":1400,"FOX_TOOTH":300,"TURTLE_BITE":120,"GOAT_HORN":45},"resources":{"MUSHROOM_WOOD":7000}}},{"level":6,"costs":{"coins":8280000,"materials":{"PIG_HOOF":5000,"BAT_CLAW":1700,"AXOLOTL_TAIL":420,"PARROT_CLAW":160,"MAGICAL_ALLAY_REMAINS":60},"resources":{"DARK_OAK_WOOD":8400}}},{"level":7,"costs":{"coins":92760000,"materials":{"STONY_REMAINS":12000,"TENTACLE":6700,"SLIMY_JEWEL":2600,"MAGIC_TRIDENT_SHARD":900,"CORKED_SOUL":300},"resources":{"MANGROVE_WOOD":10000}}},{"level":8,"costs":{"coins":1740680000,"materials":{"EXTINGUISHED_ROD":18000,"GREAT_TOOTH":8000,"STRIDER_HAIR":3500,"SPIDER_FANG":1200,"RADIANT_MUSHROOM_HORN":420},"resources":{"CRIMSON_WOOD":12400}}},{"level":9,"costs":{"coins":2560720000,"materials":{"RUSTY_AXE_BLADE":20000,"ROTTEN_BRANCH":12000,"IRON_PLATE":5000,"ROTTEN_BONE":1600,"CRYSTAL_OF_DARKNESS":500},"resources":{"WARPED_WOOD":15000}}}]},"ORE_BREAKER":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":1,"costs":{"coins":150000,"materials":{"CHICKEN_FEATHER":700,"RABBIT_FOOT":340,"PINK_PIG_EAR":150,"CHICKEN_WING":30,"STRONG_PIG_HOOF":12},"resources":{"COAL":2000}}},{"level":2,"costs":{"coins":240000,"materials":{"DONKEY_HAIR":1400,"SHEEP_HOOF":560,"COW_BONE":170,"HORSE_TAIL":50,"MAGIC_RABBIT_HAIR":15},"resources":{"RAW_COPPER":4200}}},{"level":3,"costs":{"coins":2760000,"materials":{"OCELOT_HAIR":2500,"DONKEY_SKIN":1000,"JUKEBOX":250,"FOX_PAW":90,"TURTLE_SHELL":27},"resources":{"RAW_IRON":5700}}},{"level":4,"costs":{"coins":32420000,"materials":{"MAGNIFICENT_PANDA_HAIR":5000,"WITHERED_FLOWER":2000,"FIERY_ARMOR_SHARD":900,"MAGICAL_ROCK_SPIRE":300,"KWOLOKS_TONGUE":100},"resources":{"GOLD_ORE":8000}}},{"level":5,"costs":{"coins":212580000,"materials":{"FROSTY_BONE_SHARD":14000,"BLASTING_POWDER":6000,"DARK_RUNE_SCROLL":1500,"JEWEL_OF_OSIRIS":800,"PHANTOM_HEART":300},"resources":{"DIAMONDS":10000}}},{"level":6,"costs":{"coins":545740000,"materials":{"LUMP_OF_IRON":15000,"BONE_LANCE":7000,"SINEWY_HOOF_TUBE":2000,"WAR_HORN":900,"CREEPER_HEART":350},"resources":{"SULFUR":12000}}},{"level":7,"costs":{"coins":956430000,"materials":{"SHAGGY_RAVEN_PELT":16000,"REINFORCED_LEATHER_PATCH":7500,"BONE_SKULL":2500,"MAGMA_CRYSTAL_SHARD":1000,"ANTIQUE_CORE":370},"resources":{"QUARTZ":15000}}},{"level":8,"costs":{"coins":1258490000,"materials":{"STRONG_SPIDER_THREAD":17000,"LARGE_COGWHEEL":8000,"ZOGLIN_BONE":3200,"GOLD_DUST":1200,"IRON_HEART":400},"resources":{"OBSIDIAN":17000}}},{"level":9,"costs":{"coins":3570850000,"materials":{"CHARGED_SKIN":22000,"ENDERMAN_ARM":13000,"POWERFUL_IGNITION_POWDER":6000,"LOHEN_EYE":2000,"MAGMA_HEART":650},"resources":{"NETHERITE":20000}}}]},"MAGNET":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":1,"costs":{"coins":320000,"materials":{"CRACKED_LEATHER":500,"DONKEY_SKIN":150,"DONKEY_BONE":80,"SHEEP_BELL":20,"STRONG_PIG_HOOF":6},"resources":{"COPPER_INGOT":1200}}},{"level":2,"costs":{"coins":4270000,"materials":{"POLAR_BEAR_HAIR":2000,"TURTLE_CLAW":800,"FOX_TOOTH":200,"WOLF_CLAW":70,"BEE_STINGER":27},"resources":{"IRON_INGOT":2500}}},{"level":3,"costs":{"coins":52760000,"materials":{"COKED_REMAINS":12000,"ANCIENT_SCROLL":6000,"MAGICAL_ESSENCE":2500,"MAGICAL_WEAPON_BLADE":900,"SPIRIT_OF_FIRE":300},"resources":{"GOLD_INGOT":6000}}},{"level":4,"costs":{"coins":576820000,"materials":{"CREEPER_DUST":15000,"ARROWHEAD":7000,"GOBLIN_HEART":3000,"PEARL":1200,"SPIRIT_OF_THE_SOIL_REALM":400},"resources":{"DIAMONDS":15000}}}]},"AUTO_MELT":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":1,"costs":{"coins":90000,"materials":{"PIG_BRISTLE":400,"CHICKEN_FOOT":120,"PINK_PIG_EAR":60,"RABBIT_EAR":20,"MAGIC_RABBIT_HAIR":6},"resources":{"COAL":1000}}},{"level":2,"costs":{"coins":2240000,"materials":{"AXOLOTL_SKIN":2200,"BAT_CLAW":900,"POLAR_BEAR_BONE":230,"CAMEL_TAIL":80,"WOLF_TOOTH":24},"resources":{"IRON_INGOT":2200}}},{"level":3,"costs":{"coins":27890000,"materials":{"GOBLIN_EAR":4000,"WITHERED_FLOWER":1800,"MOTHER_OF_PEARL_FIBRE":700,"MAGIC_WEAPON_SHARD":250,"SPIRIT_OF_FIRE":70},"resources":{"GOLD_INGOT":4500}}},{"level":4,"costs":{"coins":2750430000,"materials":{"MAGMA_MUCUS_RESIDUES":20000,"MAGMA_BALL":12000,"GLOWING_DROP_OF_MUCUS":5000,"EMBER_GILLS":1600,"FLAME_CRYSTAL":500},"resources":{"NETHERITE_INGOT":6000}}}]},"DISTRIBUTION_CORE":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":1,"costs":{"coins":780650000,"materials":{"BROOMSTICK":17000,"TOTEM_FRAME":8000,"PAPYRUS_FRAGMENT":3000,"MAGIC_CRYSTAL":1100,"SCATTERING_SOUL":370},"resources":{"DIAMONDS":5000}}},{"level":2,"costs":{"coins":3380540000,"materials":{"RUSTY_HORSESHOE_NAIL":21000,"GOOEY_SKIN":12000,"GLOWING_BONE_SHARD":5000,"ARCANE_MUSHROOM_SPORES":1700,"GUARDIAN_EYE":550},"resources":{"OBSIDIAN":9000}}},{"level":3,"costs":{"coins":7670480000,"materials":{"GHAST_TISSUE":23000,"CHARGED_EYE":15000,"VEX_BLADE":7000,"GOLEM_HEAD":2300,"AIR_CRYSTAL":800},"resources":{"NETHERITE_INGOT":12000}}}]},"AXE_AMPLIFIER":{"strategy":"BLOCK_BREAK_BASED","blueprints":[{"level":0,"costs":{"coins":20000,"materials":{"SOFT_RABBIT_HIDE":600,"RABBIT_FOOT":70,"RABBIT_TAIL":30,"RABBIT_EAR":15,"MAGIC_RABBIT_HAIR":6},"resources":{"OAK_WOOD":500}}}]},"PICKAXE_AMPLIFIER":{"strategy":"BLOCK_BREAK_BASED","blueprints":[{"level":0,"costs":{"coins":35000,"materials":{"PIG_BRISTLE":800,"CHICKEN_FOOT":150,"RABBIT_TAIL":50,"PIG_RIB":30,"MAGIC_RABBIT_HAIR":12},"resources":{"COAL":900}}}]},"VITALITY_CORE":{"strategy":"BLOCK_BREAK_BASED","blueprints":[{"level":0,"costs":{"coins":250000,"materials":{"OCELOT_HAIR":4200,"SHEEP_HOOF":1200,"PINK_PIG_EAR":600,"CHICKEN_WING":350,"STRONG_PIG_HOOF":45},"resources":{"JUNGLE_WOOD":5000}}}]},"WOOD_CORE":{"strategy":"BLOCK_BREAK_BASED","blueprints":[{"level":0,"costs":{"coins":65000000,"materials":{},"resources":{}}}]},"ORE_CORE":{"strategy":"BLOCK_BREAK_BASED","blueprints":[{"level":0,"costs":{"coins":650000000,"materials":{},"resources":{}}}]},"ARMOR_CORE":{"strategy":"BLOCK_BREAK_BASED","blueprints":[{"level":0,"costs":{"coins":7500000,"materials":{},"resources":{}}}]},"STRENGTH_CORE":{"strategy":"MOBS_KILLED_BASED","blueprints":[{"level":0,"costs":{"coins":5000000,"materials":{},"resources":{}}}]},"GOLD_ENGINE":{"strategy":"MOBS_KILLED_BASED","blueprints":[{"level":0,"costs":{"coins":100000000,"materials":{},"resources":{}}}]},"TREASURE_DETECTOR":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":1,"costs":{"coins":2760000,"materials":{"OCELOT_HAIR":2500,"DONKEY_SKIN":1000,"JUKEBOX":250,"FOX_PAW":90,"TURTLE_SHELL":27},"resources":{"RAW_IRON":5700}}},{"level":2,"costs":{"coins":32420000,"materials":{"MAGNIFICENT_PANDA_HAIR":5000,"WITHERED_FLOWER":2000,"FIERY_ARMOR_SHARD":900,"MAGICAL_ROCK_SPIRE":300,"KWOLOKS_TONGUE":100},"resources":{"GOLD_ORE":8000}}},{"level":3,"costs":{"coins":212580000,"materials":{"FROSTY_BONE_SHARD":14000,"BLASTING_POWDER":6000,"DARK_RUNE_SCROLL":1500,"JEWEL_OF_OSIRIS":800,"PHANTOM_HEART":300},"resources":{"DIAMONDS":10000}}},{"level":4,"costs":{"coins":545740000,"materials":{"LUMP_OF_IRON":15000,"BONE_LANCE":7000,"SINEWY_HOOF_TUBE":2000,"WAR_HORN":900,"CREEPER_HEART":350},"resources":{"SULFUR":12000}}},{"level":5,"costs":{"coins":956430000,"materials":{"SHAGGY_RAVEN_PELT":16000,"REINFORCED_LEATHER_PATCH":7500,"BONE_SKULL":2500,"MAGMA_CRYSTAL_SHARD":1000,"ANTIQUE_CORE":370},"resources":{"QUARTZ":15000}}},{"level":6,"costs":{"coins":1258490000,"materials":{"STRONG_SPIDER_THREAD":17000,"LARGE_COGWHEEL":8000,"ZOGLIN_BONE":3200,"GOLD_DUST":1200,"IRON_HEART":400},"resources":{"OBSIDIAN":17000}}},{"level":7,"costs":{"coins":3570850000,"materials":{"CHARGED_SKIN":22000,"ENDERMAN_ARM":13000,"POWERFUL_IGNITION_POWDER":6000,"LOHEN_EYE":2000,"MAGMA_HEART":650},"resources":{"NETHERITE":20000}}},{"level":8,"costs":{"coins":5883210000,"materials":{"WARDEN_ARMOR":29000,"WITHERED_WITHER_SKIN":21000,"SHULKER_EYE":10000,"PHANTOM_CLAW":3000,"AIR_CRYSTAL":830},"resources":{"ECHO_CRYSTAL":24000}}}]},"PHILOSOPHER_STONE":{"strategy":"BLUEPRINT_BASED","blueprints":[{"level":0,"costs":{"coins":10000000000,"materials":{"WARDEN_ARMOR":32000,"WITHERED_WITHER_SKIN":24000,"SHULKER_EYE":12000,"PHANTOM_CLAW":5000,"AIR_CRYSTAL":950},"resources":{"ECHO_CRYSTAL":35000}}}]}},"bag":[{"level":1,"costs":{"coins":20000,"materials":{"SOFT_RABBIT_HIDE":300,"CHICKEN_FOOT":70,"RABBIT_TAIL":30,"CHICKEN_WING":9,"RAINBOW_EGG_SHELL":2},"resources":{"OAK_WOOD":300}}},{"level":2,"costs":{"coins":300000,"materials":{"PIG_BRISTLE":500,"RABBIT_FOOT":150,"CHICKEN_CRAWL":80,"PIG_RIB":20,"STRONG_PIG_HOOF":6},"resources":{"COAL":700}}},{"level":3,"costs":{"coins":7000000,"materials":{"POLAR_BEAR_HAIR":2500,"CAMEL_SKIN":1200,"COW_BONE":400,"WOLF_CLAW":90,"FOX_TAIL":30},"resources":{"COPPER_INGOT":1500}}},{"level":4,"costs":{"coins":400000000,"materials":{"LINEN_CLOTH":8000,"REINFORCED_LEATHER_PATCH":3700,"MAGIC_ARMOR_SHARD":2000,"MAGIC_CRYSTAL":500,"KURAMAS_TAIL":120},"resources":{"IRON_INGOT":3000}}},{"level":5,"costs":{"coins":2200000000,"materials":{"MOSSY_FUR":12000,"FROSTY_SHRED_OF_LEATHER":7000,"SMALL_SLIME_PEARL":2800,"EMBER_GILLS":600,"LIGHTNING_ESSENCE":300},"resources":{"GOLD_INGOT":7000}}},{"level":6,"costs":{"coins":100000000000,"materials":{"ENDERMAN_SKIN":30000,"SHULKER_SHELL":18000,"STRIDER_HAIR":9000,"GHAST_EYE":1800,"CRYSTAL_OF_DEATH":800},"resources":{"NETHERITE_INGOT":15000}}}],"progression":{"AXE_AMPLIFIER":"10 * x^2","PICKAXE_AMPLIFIER":"10 * x^2","VITALITY_CORE":"10 * x^2","WOOD_CORE":"10 * x^2","ORE_CORE":"10 * x^2","ARMOR_CORE":"10 * x^2","STRENGTH_CORE":"100 * x^2","GOLD_ENGINE":"100 * x^2"},"tools":{"AXE_AMPLIFIER":"AXE","PICKAXE_AMPLIFIER":"PICKAXE","VITALITY_CORE":"AXE","WOOD_CORE":"AXE","ORE_CORE":"PICKAXE","ARMOR_CORE":"PICKAXE"},"rewards":[{"coll":"OAK_WOOD","tier":1,"amount":50,"kind":"bag","level":1},{"coll":"OAK_WOOD","tier":2,"amount":100,"kind":"gadget","gadget":"WOOD_CUTTER","level":1},{"coll":"OAK_WOOD","tier":3,"amount":250,"kind":"gadget","gadget":"AXE_AMPLIFIER","level":0},{"coll":"COAL","tier":1,"amount":50,"kind":"gadget","gadget":"PICKAXE_AMPLIFIER","level":0},{"coll":"COAL","tier":2,"amount":100,"kind":"gadget","gadget":"ORE_BREAKER","level":1},{"coll":"COAL","tier":3,"amount":250,"kind":"license","license":"copper_mine"},{"coll":"COAL","tier":4,"amount":1000,"kind":"gadget","gadget":"AUTO_MELT","level":1},{"coll":"RAW_COPPER","tier":2,"amount":100,"kind":"gadget","gadget":"ORE_BREAKER","level":2},{"coll":"RAW_COPPER","tier":3,"amount":250,"kind":"license","license":"beach"},{"coll":"RAW_COPPER","tier":4,"amount":1000,"kind":"bag","level":2},{"coll":"RAW_COPPER","tier":6,"amount":5000,"kind":"gadget","gadget":"MAGNET","level":1},{"coll":"JUNGLE_WOOD","tier":4,"amount":1000,"kind":"license","license":"spruce_forest"},{"coll":"JUNGLE_WOOD","tier":5,"amount":2500,"kind":"gadget","gadget":"WOOD_CUTTER","level":2},{"coll":"JUNGLE_WOOD","tier":7,"amount":10000,"kind":"gadget","gadget":"VITALITY_CORE","level":0},{"coll":"SPRUCE_WOOD","tier":4,"amount":1000,"kind":"license","license":"bamboo_forest"},{"coll":"SPRUCE_WOOD","tier":5,"amount":2500,"kind":"gadget","gadget":"WOOD_CUTTER","level":3},{"coll":"SPRUCE_WOOD","tier":7,"amount":10000,"kind":"gadget","gadget":"STRENGTH_CORE","level":0},{"coll":"BAMBOO","tier":5,"amount":2500,"kind":"license","license":"iron_mine"},{"coll":"BAMBOO","tier":6,"amount":5000,"kind":"gadget","gadget":"WOOD_CUTTER","level":4},{"coll":"RAW_IRON","tier":3,"amount":250,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":1},{"coll":"RAW_IRON","tier":4,"amount":1000,"kind":"gadget","gadget":"ORE_BREAKER","level":3},{"coll":"RAW_IRON","tier":5,"amount":2500,"kind":"license","license":"mushroom_forest"},{"coll":"RAW_IRON","tier":6,"amount":5000,"kind":"gadget","gadget":"AUTO_MELT","level":2},{"coll":"RAW_IRON","tier":7,"amount":10000,"kind":"gadget","gadget":"MAGNET","level":2},{"coll":"RAW_IRON","tier":8,"amount":25000,"kind":"gadget","gadget":"ARMOR_CORE","level":0},{"coll":"MUSHROOM_WOOD","tier":4,"amount":1000,"kind":"bag","level":3},{"coll":"MUSHROOM_WOOD","tier":5,"amount":2500,"kind":"license","license":"dark_oak_forest"},{"coll":"MUSHROOM_WOOD","tier":6,"amount":5000,"kind":"gadget","gadget":"WOOD_CUTTER","level":5},{"coll":"DARK_OAK_WOOD","tier":5,"amount":2500,"kind":"license","license":"gold_mine"},{"coll":"DARK_OAK_WOOD","tier":6,"amount":5000,"kind":"gadget","gadget":"WOOD_CUTTER","level":6},{"coll":"GOLD_ORE","tier":3,"amount":250,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":2},{"coll":"GOLD_ORE","tier":4,"amount":1000,"kind":"gadget","gadget":"GOLD_ENGINE","level":0},{"coll":"GOLD_ORE","tier":5,"amount":2500,"kind":"gadget","gadget":"ORE_BREAKER","level":4},{"coll":"GOLD_ORE","tier":6,"amount":5000,"kind":"license","license":"mangrove_swamp"},{"coll":"GOLD_ORE","tier":7,"amount":10000,"kind":"gadget","gadget":"MAGNET","level":3},{"coll":"GOLD_ORE","tier":8,"amount":25000,"kind":"gadget","gadget":"AUTO_MELT","level":3},{"coll":"MANGROVE_WOOD","tier":5,"amount":2500,"kind":"gadget","gadget":"WOOD_CORE","level":0},{"coll":"MANGROVE_WOOD","tier":6,"amount":5000,"kind":"license","license":"diamond_mine"},{"coll":"MANGROVE_WOOD","tier":7,"amount":10000,"kind":"gadget","gadget":"WOOD_CUTTER","level":7},{"coll":"DIAMOND","tier":3,"amount":250,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":3},{"coll":"DIAMOND","tier":4,"amount":1000,"kind":"gadget","gadget":"DISTRIBUTION_CORE","level":1},{"coll":"DIAMOND","tier":5,"amount":2500,"kind":"bag","level":4},{"coll":"DIAMOND","tier":6,"amount":5000,"kind":"license","license":"sulfur_fields"},{"coll":"DIAMOND","tier":7,"amount":10000,"kind":"gadget","gadget":"ORE_BREAKER","level":5},{"coll":"DIAMOND","tier":8,"amount":25000,"kind":"gadget","gadget":"MAGNET","level":4},{"coll":"SULFUR","tier":3,"amount":250,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":4},{"coll":"SULFUR","tier":6,"amount":5000,"kind":"license","license":"quartz_mine"},{"coll":"SULFUR","tier":7,"amount":10000,"kind":"gadget","gadget":"ORE_BREAKER","level":6},{"coll":"QUARTZ","tier":3,"amount":250,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":5},{"coll":"QUARTZ","tier":5,"amount":2500,"kind":"gadget","gadget":"ORE_CORE","level":0},{"coll":"QUARTZ","tier":6,"amount":5000,"kind":"license","license":"obsidian_mine"},{"coll":"QUARTZ","tier":7,"amount":10000,"kind":"gadget","gadget":"ORE_BREAKER","level":7},{"coll":"OBSIDIAN","tier":3,"amount":250,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":6},{"coll":"OBSIDIAN","tier":5,"amount":2500,"kind":"gadget","gadget":"DISTRIBUTION_CORE","level":2},{"coll":"OBSIDIAN","tier":6,"amount":5000,"kind":"bag","level":5},{"coll":"OBSIDIAN","tier":7,"amount":10000,"kind":"license","license":"crimson_forest"},{"coll":"OBSIDIAN","tier":8,"amount":25000,"kind":"gadget","gadget":"ORE_BREAKER","level":8},{"coll":"CRIMSON_STEM","tier":7,"amount":10000,"kind":"license","license":"warped_forest"},{"coll":"CRIMSON_STEM","tier":8,"amount":25000,"kind":"gadget","gadget":"WOOD_CUTTER","level":8},{"coll":"TANGLED_WOOD","tier":7,"amount":10000,"kind":"license","license":"netherite_mine"},{"coll":"TANGLED_WOOD","tier":8,"amount":25000,"kind":"gadget","gadget":"WOOD_CUTTER","level":9},{"coll":"ANCIENT_DEBRIS","tier":5,"amount":2500,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":7},{"coll":"ANCIENT_DEBRIS","tier":6,"amount":5000,"kind":"gadget","gadget":"DISTRIBUTION_CORE","level":3},{"coll":"ANCIENT_DEBRIS","tier":7,"amount":10000,"kind":"license","license":"echo_mine"},{"coll":"ANCIENT_DEBRIS","tier":8,"amount":25000,"kind":"gadget","gadget":"AUTO_MELT","level":4},{"coll":"ANCIENT_DEBRIS","tier":9,"amount":50000,"kind":"gadget","gadget":"ORE_BREAKER","level":9},{"coll":"ECHO_CRYSTAL","tier":5,"amount":2500,"kind":"gadget","gadget":"TREASURE_DETECTOR","level":8},{"coll":"ECHO_CRYSTAL","tier":7,"amount":10000,"kind":"bag","level":6},{"coll":"ECHO_CRYSTAL","tier":8,"amount":25000,"kind":"license","license":"amethyst_mine"},{"coll":"ECHO_CRYSTAL","tier":9,"amount":50000,"kind":"gadget","gadget":"PHILOSOPHER_STONE","level":1}],"res_biome":{"OAK_WOOD":"oak_forest","COAL":"coal_mine","RAW_COPPER":"copper_mine","JUNGLE_WOOD":"beach","SPRUCE_WOOD":"spruce_forest","BAMBOO":"bamboo_forest","RAW_IRON":"iron_mine","MUSHROOM_WOOD":"mushroom_forest","DARK_OAK_WOOD":"dark_oak_forest","GOLD_ORE":"gold_mine","MANGROVE_WOOD":"mangrove_swamp","DIAMOND":"diamond_mine","SULFUR":"sulfur_fields","QUARTZ":"quartz_mine","OBSIDIAN":"obsidian_mine","CRIMSON_STEM":"crimson_forest","TANGLED_WOOD":"warped_forest","ANCIENT_DEBRIS":"netherite_mine","ECHO_CRYSTAL":"echo_mine","AMETHYST":"amethyst_mine"},"biomes":{"oak_forest":{"minFarmzoneLevel":0,"costs":{"coins":0,"materials":{},"resources":{}},"license":null},"coal_mine":{"minFarmzoneLevel":2,"costs":{"coins":30000,"materials":{"PIG_BRISTLE":200},"resources":{"OAK_WOOD":200}},"license":null},"copper_mine":{"minFarmzoneLevel":3,"costs":{"coins":200000,"materials":{"LLAMA_HAIR":300},"resources":{"COAL":300}},"license":"copper_mine"},"beach":{"minFarmzoneLevel":4,"costs":{"coins":400000,"materials":{"OCELOT_HAIR":500},"resources":{"OAK_WOOD":300}},"license":"beach"},"spruce_forest":{"minFarmzoneLevel":0,"costs":{"coins":1200000,"materials":{"WOLF_HAIR":1200},"resources":{"JUNGLE_WOOD":500}},"license":"spruce_forest"},"bamboo_forest":{"minFarmzoneLevel":6,"costs":{"coins":1500000,"materials":{"PANDA_HAIR":2000},"resources":{"SPRUCE_WOOD":700}},"license":"bamboo_forest"},"iron_mine":{"minFarmzoneLevel":7,"costs":{"coins":3000000,"materials":{"BAT_FUR":2200},"resources":{"COPPER_INGOT":500}},"license":"iron_mine"},"mushroom_forest":{"minFarmzoneLevel":8,"costs":{"coins":5000000,"materials":{"RABBIT_FUR_THREAD":2500},"resources":{"BAMBOO":1000}},"license":"mushroom_forest"},"dark_oak_forest":{"minFarmzoneLevel":9,"costs":{"coins":10000000,"materials":{"SHEEP_FLUFF":3500},"resources":{"MUSHROOM_WOOD":1200}},"license":"dark_oak_forest"},"gold_mine":{"minFarmzoneLevel":10,"costs":{"coins":40000000,"materials":{"LINEN_CLOTH":7000},"resources":{"IRON_INGOT":1200}},"license":"gold_mine"},"mangrove_swamp":{"minFarmzoneLevel":11,"costs":{"coins":80000000,"materials":{"SLIME_BALL":10000},"resources":{"DARK_OAK_WOOD":1500}},"license":"mangrove_swamp"},"diamond_mine":{"minFarmzoneLevel":12,"costs":{"coins":250000000,"materials":{"FRAGILE_SCALE":12000},"resources":{"GOLD_INGOT":2000}},"license":"diamond_mine"},"sulfur_fields":{"minFarmzoneLevel":13,"costs":{"coins":700000000,"materials":{"MOSSY_FUR":15000},"resources":{"DIAMOND":2500}},"license":"sulfur_fields"},"quartz_mine":{"minFarmzoneLevel":14,"costs":{"coins":1000000000,"materials":{"PIGLIN_LEATHER":18000},"resources":{"SULFUR":3200}},"license":"quartz_mine"},"obsidian_mine":{"minFarmzoneLevel":15,"costs":{"coins":1500000000,"materials":{"STRIDER_SKIN":20000},"resources":{"QUARTZ":4000}},"license":"obsidian_mine"},"crimson_forest":{"minFarmzoneLevel":16,"costs":{"coins":2200000000,"materials":{"HOGLIN_SKIN":24000},"resources":{"MANGROVE_WOOD":5200}},"license":"crimson_forest"},"warped_forest":{"minFarmzoneLevel":17,"costs":{"coins":3000000000,"materials":{"ENDERMAN_SKIN":27000},"resources":{"CRIMSON_STEM":6000}},"license":"warped_forest"},"netherite_mine":{"minFarmzoneLevel":18,"costs":{"coins":4200000000,"materials":{"DARK_BONE_FRAGMENT":30000},"resources":{"OBSIDIAN":7200}},"license":"netherite_mine"},"echo_mine":{"minFarmzoneLevel":19,"costs":{"coins":6000000000,"materials":{"WARDEN_ARMOR":35000},"resources":{"NETHERITE_SCRAP":5000}},"license":"echo_mine"},"amethyst_mine":{"minFarmzoneLevel":20,"costs":{"coins":10000000000,"materials":{"WARDEN_ARMOR":40000},"resources":{"ECHO_CRYSTAL":7000}},"license":"amethyst_mine"}},"bagcap":[20,55,100,400,600,800]};
+const NAMES = {WOOD_CUTTER:"Holzhacker",ORE_BREAKER:"Ore Breaker",MAGNET:"Magnet",AUTO_MELT:"Auto Melt",DISTRIBUTION_CORE:"Distribution Core",TREASURE_DETECTOR:"Treasure Detector",PHILOSOPHER_STONE:"Philosopher Stone",AXE_AMPLIFIER:"Axe Amplifier",PICKAXE_AMPLIFIER:"Pickaxe Amplifier",VITALITY_CORE:"Vitality Core",WOOD_CORE:"Wood Core",ORE_CORE:"Ore Core",ARMOR_CORE:"Armor Core",STRENGTH_CORE:"Strength Core",GOLD_ENGINE:"Gold Engine"};
+const COLLN = {JUNGLE_WOOD:"Dschungelholz"};
+const title = s => COLLN[s] || s.toLowerCase().split("_").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
+const nf = new Intl.NumberFormat("de-DE");
+const n = x => nf.format(x);
+const roman = x => ["","I","II","III","IV","V","VI","VII","VIII","IX","X"][x] || String(x);
+const loc = (x,d) => x.toLocaleString("de-DE",{maximumFractionDigits:d});
+const short = x => x>=1e9 ? loc(x/1e9,1)+" Mrd." : x>=1e6 ? loc(x/1e6,1)+" Mio." : x>=1e3 ? loc(x/1e3,1)+" Tsd." : String(x);
+const GROUPS = [
+  {name:"Blueprint-Gadgets", ids:["WOOD_CUTTER","ORE_BREAKER","MAGNET","AUTO_MELT","DISTRIBUTION_CORE","TREASURE_DETECTOR","PHILOSOPHER_STONE"]},
+  {name:"Fortschritts-Gadgets", ids:["AXE_AMPLIFIER","PICKAXE_AMPLIFIER","VITALITY_CORE","WOOD_CORE","ORE_CORE","ARMOR_CORE","STRENGTH_CORE","GOLD_ENGINE"]},
+];
+const formula = f => f.replace("*","·").replace("x^2","x²");
+const STRAT = id => {
+  const s = D.gadgets[id].strategy;
+  if (s==="BLUEPRINT_BASED") return "Stufen per Blueprint";
+  if (s==="BLOCK_BREAK_BASED") return "Level durch abgebaute Blöcke ("+(D.tools[id]==="AXE"?"Axt":"Spitzhacke")+"), Formel "+formula(D.progression[id]);
+  return "Level durch getötete Mobs, Formel "+formula(D.progression[id]);
+};
+const sourceOf = (kind,id,level) => D.rewards.find(r => r.kind===kind && (kind==="bag" ? r.level===level : r.gadget===id && r.level===level));
+const costLine = c => {
+  const parts = [];
+  if (c.coins) parts.push(n(c.coins)+" Coins");
+  Object.entries(c.materials).forEach(([k,v])=>parts.push(n(v)+" × "+title(k)));
+  Object.entries(c.resources).forEach(([k,v])=>parts.push(n(v)+" × "+title(k)+" (Ressource)"));
+  return parts.length ? parts : ["keine"];
+};
+const costTags = c => costLine(c).map(p=>'<span class="tag">'+p+'</span>').join("");
+// Die Lizenz eines Bioms kommt aus der Tier-Belohnung einer anderen Collection. Die Kette läuft bis zu einem Biom ohne Lizenz.
+function biomeChain(coll){
+  const steps = []; let cur = coll; const seen = new Set();
+  while (cur && !seen.has(cur)) {
+    seen.add(cur);
+    const biome = D.res_biome[cur]; const b = D.biomes[biome];
+    if (!b) break;
+    const lic = b.license ? D.rewards.find(r=>r.kind==="license" && r.license===b.license) : null;
+    steps.unshift({coll:cur,biome,b,lic});
+    cur = lic ? lic.coll : null;
+  }
+  return steps;
+}
+function biomeStep(s){
+  const req = ["Farmzone-Level "+s.b.minFarmzoneLevel];
+  if (s.lic) req.push("Lizenz „"+title(s.b.license)+"“ (Collection "+title(s.lic.coll)+", Tier "+roman(s.lic.tier)+", "+n(s.lic.amount)+")");
+  return {h:"Biom „"+title(s.biome)+"“ freischalten", p:req.join(" · ")+"<br>Kosten: "+costTags(s.b.costs)+"<br>Danach dort "+title(s.coll)+" farmen."};
+}
+function sheetFor(kind,id,level,name){
+  const bp = kind==="bag" ? D.bag.find(b=>b.level===level) : D.gadgets[id].blueprints.find(b=>b.level===level);
+  const src = sourceOf(kind,id,level);
+  const steps = []; let warn = "";
+  // Nur das, was gegenüber den vorherigen Stufen neu dazukommt: Biome, die schon für eine frühere Stufe nötig waren, entfallen.
+  const done = new Set();
+  const prev = (kind==="bag" ? D.bag : D.gadgets[id].blueprints).filter(b=>b.level<level);
+  prev.forEach(b=>{ const ps = sourceOf(kind,id,b.level); if (ps) biomeChain(ps.coll).forEach(s=>done.add(s.biome)); });
+  if (src) {
+    biomeChain(src.coll).filter(s=>!done.has(s.biome)).forEach(s=>steps.push(biomeStep(s)));
+    steps.push({h:"Collection „"+title(src.coll)+"“ bis Tier "+roman(src.tier)+" füllen",p:'<span class="kv">'+n(src.amount)+' × '+title(src.coll)+'</span> insgesamt gesammelt. Das Tier schenkt den Blueprint.'});
+  } else {
+    warn = "Für diesen Blueprint gibt es keine Collection-Belohnung. Die Belohnung in Collection ECHO_CRYSTAL, Tier IX (50.000) verweist auf PHILOSOPHER_STONE_LVL_1, der Blueprint heißt in der Config aber PHILOSOPHER_STONE_LVL_0. Beim Erreichen des Tiers wirft der Reward-Executor eine IllegalArgumentException (Unknown blueprintId).";
+  }
+  if (kind==="bag") steps.push({h:"Factory-Level "+D.bagcap[level-1]+" erreichen",p:"Cap für Slot "+level+" der Gadget-Tasche. Ohne das Level lehnt der Engineer das Upgrade ab."});
+  steps.push({h:"Beim Engineer craften",p:"Kosten: "+costTags(bp.costs)+"<br>Ort: Hub, Engineer-NPC, "+(kind==="bag"?"Gadget-Tasche":"Gadgets")+"."});
+  if (kind==="gadget" && level===0 && D.gadgets[id].strategy!=="BLUEPRINT_BASED") steps.push({h:"Danach: Level durch Fortschritt",p:STRAT(id)+"."});
+  return {steps,warn};
+}
+function renderSheet(kind,id,level){
+  const name = kind==="bag" ? "Gadget-Tasche" : NAMES[id];
+  const sub = kind==="bag" ? "Slot "+level+" · GADGET_BAG_BLUEPRINT."+level : (level===0?"Freischaltung":"Stufe "+roman(level))+" · "+id+"_LVL_"+level;
+  const {steps,warn} = sheetFor(kind,id,level,name);
+  document.getElementById("sheet").innerHTML = '<h2>'+name+'<small>'+sub+'</small></h2>'
+    + (warn?'<div class="note">'+warn+'</div>':'')
+    + '<ol class="chain">'+steps.map((s,i)=>'<li><span class="dot">'+(i+1)+'</span><div><h4>'+s.h+'</h4><p>'+s.p+'</p></div></li>').join("")+'</ol>';
+}
+let sel = {kind:"gadget",id:"WOOD_CUTTER",level:2};
+function nodeBtn(kind,id,level,top,sub){
+  const src = sourceOf(kind,id,level); const bad = kind==="gadget" && !src;
+  const pressed = sel.kind===kind && sel.id===id && sel.level===level;
+  const em = src ? title(src.coll)+" "+roman(src.tier) : "keine Quelle";
+  return '<div class="step"><button class="node'+(level===0&&kind==="gadget"?" l0":"")+(bad?" bad":"")+'" aria-pressed="'+pressed+'" data-kind="'+kind+'" data-id="'+id+'" data-level="'+level+'"><b>'+top+'</b><span>'+sub+'</span><em>'+em+'</em></button></div>';
+}
+function viewBag(){
+  const nodes = D.bag.map(b=>nodeBtn("bag","BAG",b.level,"Slot "+b.level,short(b.costs.coins)+" · Lv "+D.bagcap[b.level-1])).join("");
+  return '<div class="lanes"><div class="lane"><h3>Gadget-Tasche<small>Slots 1 bis 6, nur nacheinander</small></h3><div class="rail">'+nodes+'</div></div></div>'
+   + '<div class="info">Unter jedem Slot steht die Collection, die den Blueprint liefert. Die Zahlen darüber sind Craft-Coins und das nötige Factory-Level.</div>';
+}
+function viewGadgets(){
+  return '<div class="lanes">'+GROUPS.map(g=>'<h3 class="grp">'+g.name+'</h3>'
+    + g.ids.map(id=>{
+      const nodes = D.gadgets[id].blueprints.map(b=>nodeBtn("gadget",id,b.level,b.level===0?"Freischalten":"Stufe "+roman(b.level),short(b.costs.coins)+" Coins")).join("");
+      return '<div class="lane"><h3>'+NAMES[id]+'<small>'+STRAT(id)+'</small></h3><div class="rail">'+nodes+'</div></div>';
+    }).join("")).join("")+'</div>';
+}
+function viewTree(){
+  const L = [];
+  L.push("<b>Engineer</b> (Hub-NPC)");
+  L.push("├─ <b>Gadget-Tasche</b>, 6 Slots, Factory-Level-Caps "+D.bagcap.join(" / "));
+  D.bag.forEach((b,i)=>{ const s=sourceOf("bag","BAG",b.level); L.push("│  "+(i<D.bag.length-1?"├":"└")+"─ Slot "+b.level+"  ← "+title(s.coll)+" Tier "+roman(s.tier)+" ("+n(s.amount)+")"); });
+  L.push("└─ <b>Gadgets</b>");
+  GROUPS.forEach((g,gi)=>{
+    const lastG = gi===GROUPS.length-1;
+    L.push("   "+(lastG?"└":"├")+"─ "+g.name);
+    g.ids.forEach((id,i)=>{
+      const lastI = i===g.ids.length-1; const pre = "   "+(lastG?" ":"│")+"  "+(lastI?"└":"├")+"─ ";
+      const parts = D.gadgets[id].blueprints.map(b=>{const s=sourceOf("gadget",id,b.level); return (b.level===0?"":roman(b.level)+" ")+(s?title(s.coll)+" "+roman(s.tier):"?");});
+      L.push(pre+"<b>"+NAMES[id]+"</b>  "+parts.join(" → "));
+    });
+  });
+  const rows = D.rewards.filter(r=>r.kind==="license").map(r=>{const b=D.biomes[r.license]; return '<tr><td>'+title(r.license)+'</td><td>'+title(r.coll)+', Tier '+roman(r.tier)+' ('+n(r.amount)+')</td><td>'+(b?"Lv "+b.minFarmzoneLevel+" · "+short(b.costs.coins)+" Coins":"")+'</td></tr>';}).join("");
+  return '<div class="tree">'+L.join("\n")+'</div>'
+    + '<h3 class="grp" style="margin:22px 0 8px">Biom-Lizenzen: womit man welches Biom aufmacht</h3>'
+    + '<div class="scroll"><table><thead><tr><th>Biom / Lizenz</th><th>Kommt aus</th><th>Biom-Freischaltung</th></tr></thead><tbody>'
+    + '<tr><td>Oak Forest</td><td>Startbiom</td><td>Lv 0</td></tr><tr><td>Coal Mine</td><td>keine Lizenz nötig</td><td>Lv 2 · 30 Tsd. Coins</td></tr>'+rows+'</tbody></table></div>';
+}
+// Komplettweg: alle Stufen eines Moduls hintereinander. Bereits freigeschaltete Biome werden nicht noch einmal aufgeführt.
+function fullPath(kind,id){
+  const bps = kind==="bag" ? D.bag : D.gadgets[id].blueprints;
+  const name = kind==="bag" ? "Gadget-Tasche" : NAMES[id];
+  const seen = new Set(); const groups = [];
+  bps.forEach(bp=>{
+    const level = bp.level; const src = sourceOf(kind,id,level); const items = []; let warn = "";
+    if (src) {
+      biomeChain(src.coll).forEach(s=>{ if (!seen.has(s.biome)) { seen.add(s.biome); items.push(biomeStep(s)); } });
+      items.push({h:"Collection „"+title(src.coll)+"“ bis Tier "+roman(src.tier)+" füllen",p:'<span class="kv">'+n(src.amount)+' × '+title(src.coll)+'</span> insgesamt gesammelt. Das Tier schenkt den Blueprint.'});
+    } else {
+      warn = "Für diesen Blueprint gibt es keine Collection-Belohnung (PHILOSOPHER_STONE_LVL_1 in der Belohnung, LVL_0 in der Config).";
+    }
+    if (kind==="bag") items.push({h:"Factory-Level "+D.bagcap[level-1]+" erreichen",p:"Cap für Slot "+level+" der Gadget-Tasche."});
+    items.push({h:"Beim Engineer craften",p:"Kosten: "+costTags(bp.costs)});
+    const label = kind==="bag" ? "Slot "+level : (level===0?"Freischaltung":"Stufe "+roman(level));
+    groups.push({label, key: kind==="bag" ? "GADGET_BAG_BLUEPRINT."+level : id+"_LVL_"+level, items, warn});
+  });
+  if (kind==="gadget" && bps.length===1 && bps[0].level===0 && D.gadgets[id].strategy!=="BLUEPRINT_BASED")
+    groups.push({label:"Danach",key:"Fortschritt",items:[{h:"Level durch Fortschritt",p:STRAT(id)+"."}],warn:""});
+  return {name,groups};
+}
+function viewFull(){
+  const mods = [["bag","BAG"]].concat(GROUPS.flatMap(g=>g.ids.map(id=>["gadget",id])));
+  const html = mods.map(([kind,id],mi)=>{
+    const {name,groups} = fullPath(kind,id); let c = 0;
+    const total = groups.reduce((a,g)=>a+g.items.length,0);
+    const body = groups.map(g=>{
+      const lis = g.items.map(s=>'<li><span class="dot">'+(++c)+'</span><div><h4>'+s.h+'</h4><p>'+s.p+'</p></div></li>').join("");
+      return '<h5 class="lvl">'+g.label+'<small>'+g.key+'</small></h5>'+(g.warn?'<div class="note">'+g.warn+'</div>':'')+'<ol class="chain">'+lis+'</ol>';
+    }).join("");
+    return '<details class="mod"'+(mi===0?' open':'')+'><summary><span class="mn">'+name+'</span><small>'+groups.length+(kind==="bag"?" Slots":" Stufen")+' · '+total+' Schritte</small></summary><div class="mb">'+body+'</div></details>';
+  }).join("");
+  return '<div class="bar"><button class="btn" data-act="open">Alle aufklappen</button><button class="btn" data-act="close">Alle zuklappen</button></div>'+html;
+}
+const TABS = [["tasche","Gadget-Tasche",viewBag],["gadgets","Gadgets",viewGadgets],["voll","Komplettwege",viewFull],["baum","Übersicht",viewTree]];
+let tab = "gadgets";
+function draw(){
+  document.getElementById("tabs").innerHTML = TABS.map(t=>'<button class="tab" role="tab" aria-selected="'+(t[0]===tab)+'" data-tab="'+t[0]+'">'+t[1]+'</button>').join("");
+  document.getElementById("view").innerHTML = TABS.find(t=>t[0]===tab)[2]();
+  const noSheet = tab==="baum" || tab==="voll";
+  document.getElementById("sheet").hidden = noSheet;
+  if (!noSheet) renderSheet(sel.kind,sel.id,sel.level);
+}
+document.addEventListener("click", e=>{
+  const act = e.target.closest("[data-act]");
+  if (act) { document.querySelectorAll("details.mod").forEach(d=>{ d.open = act.dataset.act==="open"; }); return; }
+  const t = e.target.closest("[data-tab]");
+  if (t) {
+    tab = t.dataset.tab;
+    if (tab==="tasche") sel = {kind:"bag",id:"BAG",level:2};
+    if (tab==="gadgets" && sel.kind==="bag") sel = {kind:"gadget",id:"WOOD_CUTTER",level:2};
+    draw(); return;
+  }
+  const b = e.target.closest(".node");
+  if (b) { sel = {kind:b.dataset.kind,id:b.dataset.id,level:+b.dataset.level}; draw(); document.getElementById("sheet").scrollIntoView({block:"nearest",behavior:"smooth"}); }
+});
+draw();
+</script>
