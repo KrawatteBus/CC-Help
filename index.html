@@ -106,10 +106,9 @@ select.in.wide{width:290px}
 .muted{color:var(--muted);font-size:13px;font-weight:400}
 .prog{height:8px;background:var(--line);margin-bottom:12px}
 .prog div{height:100%;background:var(--accent);transition:width .15s}
-.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 12px 3px 9px;border:1px solid var(--line);border-radius:999px;font:600 13px var(--f-body)}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 12px 3px 9px;border:1px solid currentColor;border-radius:999px;font:600 13px var(--f-body)}
 .pill i{width:9px;height:9px;border-radius:50%;background:currentColor;display:inline-block}
-.p-LEGENDARY{color:var(--warn);border-color:var(--warn)}.p-EPIC{color:#8a3fc7;border-color:#8a3fc7}.p-RARE{color:var(--accent);border-color:var(--accent)}.p-UNCOMMON,.p-COMMON,.p-NONE{color:var(--muted)}
-.pill{color:inherit}
+.p-LEGENDARY{color:var(--warn)}.p-EPIC{color:#8a3fc7}.p-RARE{color:var(--accent)}.p-UNCOMMON,.p-COMMON,.p-NONE{color:var(--muted)}
 .ck{width:34px}.ck input{width:18px;height:18px;cursor:pointer;accent-color:var(--accent)}
 .strike{text-decoration:line-through;color:var(--muted)}
 .tbl tr.none td.nonec{background:rgba(180,50,40,.18)}
@@ -427,40 +426,32 @@ const KITDEF = {
   tank: {label:"Tank", val:"Schutz", cols:["Verteid.-Tier","Attribut-Tier"], note:"Pro Slot das Teil mit dem höchsten Schutz. Tier (1–10) ist die Qualität der Modifier-Gruppen Verteidigung (Verteidigung, Ausweichen, Schild) und Attribut (u. a. Vitalität). Bei gleichem Schutz gewinnt das höhere Tier."},
   gather: {label:"Holzfäller & Bergbauer", val:"Speed / Schutz", cols:["Skill-Tier","Ertrag-Chance"], note:"Axt und Spitzhacke nach Speed, danach Rüstung mit dem höchsten Skill-Tier. Die Skill-Gruppe würfelt zufällig einen von 5 Modifiern (Holz-/Berg-Ertrag, Holz-/Berg-XP, Angel-XP)."},
   coins: {label:"Aincrad Coins", val:"Schaden / Schutz", cols:["Tier","Coin-Menge"], note:"Teile mit dem höchsten Tier der Gruppe Sonstiges. Sie würfelt einen von 9 Modifiern, 3 davon erhöhen Coins (Coin-Chance und Coin-Menge als Zahl oder Faktor). Gezeigt ist der Faktor für Coin-Menge."},
-  check: {label:"Amboss / Ofen Checkliste", val:"", cols:[], note:""},
   mats: {label:"Aincrad Material", val:"Schaden / Schutz", cols:["Tier","Material-Chance"], note:"Gleiche Teile wie beim Coins-Kit, weil dieselbe Gruppe Sonstiges beides würfelt. Nur 1 von 9 Modifiern ist die Material-Drop-Chance. Gezeigt ist deren Faktor."}
 };
+let kitDone = {};
+try { kitDone = JSON.parse(localStorage.getItem("ccKitDone")||"{}") || {}; } catch(e) {}
+function kitSave(){ try { localStorage.setItem("ccKitDone", JSON.stringify(kitDone)); } catch(e) {} }
 function viewKits(){
-  const K = D.kits, def = KITDEF[kitSel], rows = kitSel==="check" ? [] : K.kits[kitSel][kitBand];
+  const K = D.kits, def = KITDEF[kitSel], rows = K.kits[kitSel][kitBand], done = kitDone[kitSel] || {};
   const chip = (attr,key,label,on) => '<button class="btn" '+attr+'="'+key+'" aria-pressed="'+on+'">'+label+'</button>';
   const kitBar = Object.keys(KITDEF).map(k=>chip("data-kit",k,KITDEF[k].label,k===kitSel)).join("");
-  const bandBar = K.bands.map(b=>chip("data-band",b,b,String(b)===kitBand)).join("");
+  const bandBar = K.bands.map(b=>chip("data-band",b,"bis "+b,String(b)===kitBand)).join("");
+  const real = rows.filter(r=>r[1]), cnt = real.filter(r=>done[r[1]]).length, tot = real.length;
   const sum = kitSel==="tank" ? rows.reduce((a,r)=>a+r[5],0) : 0;
-  const head = '<tr><th>Slot</th><th>Teil</th><th class="num">Floor</th><th class="num">Chance</th><th>Seltenheit</th><th class="num">'+def.val+'</th>'+def.cols.map(c=>'<th class="num">'+c+'</th>').join("")+'</tr>';
-  const body = rows.map(r=>'<tr><th scope="row">'+r[0]+'</th><td>'+(r[1]?'<b>'+title(r[1])+'</b>':"–")+'</td><td class="num">'+(r[1]?r[2]:"–")+'</td><td class="num">'+(r[1]?loc(r[3],3)+" %":"–")+'</td>'+(r[1]?rarTd(r[4]):"<td>–</td>")+'<td class="num">'+(r[1]?n(r[5]):"–")+'</td>'+r.slice(6).map(x=>'<td class="num">'+x+'</td>').join("")+'</tr>').join("");
-  return '<div class="info" style="margin-top:0">Kits bestehen aus Teilen, die ein Aincrad-Mob als Blueprint droppt. Du wählst die Stufe („bis Floor“) und siehst das beste Teil je Slot, das bis dahin droppt. Die Kits sind eine Empfehlung aus den Config-Daten, kein Spielfeature.</div>'
-    +'<div class="bar">'+kitBar+'</div>'+(kitSel==='check' ? viewCheck() : '<div class="bar">'+bandBar+'</div>'
-    +'<div class="tbl"><table>'+head+body+'</table></div>'
-    +(kitSel==="tank" ? '<p class="foot">Summe Schutz: <b>'+n(sum)+'</b>. '+def.note+'</p>' : '<p class="foot">'+def.note+'</p>'));
-}
-let chkStage = "early", chkDone = {};
-try { const c = JSON.parse(localStorage.getItem("ccCheck")||"{}"); chkDone = c.done || {}; if (c.stage) chkStage = c.stage; } catch(e) {}
-function chkSave(){ try { localStorage.setItem("ccCheck", JSON.stringify({stage:chkStage,done:chkDone})); } catch(e) {} }
-function viewCheck(){
-  const C = D.checks.stages, st = C.find(s=>s.key===chkStage) || C[0], done = chkDone[st.key] || {};
-  const cnt = st.rows.filter(r=>done[r[3]]).length, tot = st.rows.length;
-  const chips = C.map(s=>'<button class="btn" data-stage="'+s.key+'" aria-pressed="'+(s.key===st.key)+'">'+s.label+'</button>').join("");
-  const rows = st.rows.map(r=>{
-    const none = r[1]==="NONE", on = !!done[r[3]];
-    return '<tr'+(none?' class="none"':'')+'><td class="ck"><input type="checkbox" data-chk="'+r[3]+'" aria-label="'+r[0]+' erledigt"'+(on?" checked":"")+'></td>'
-      +'<td><span class="pill p-'+r[1]+'"><i></i>'+r[0]+'</span></td><td class="num">'+(none?"x":r[2])+'</td>'
-      +'<td'+(none?' class="nonec"':'')+'>'+(none?r[3]:'<span class="'+(on?"strike":"")+'">'+title(r[3])+'</span>')+'</td></tr>';
+  const head = '<tr><th></th><th>Teil</th><th class="num">Ebene</th><th>Gegenstandsname</th><th class="num">Chance</th><th class="num">'+def.val+'</th>'+def.cols.map(c=>'<th class="num">'+c+'</th>').join("")+'</tr>';
+  const body = rows.map(r=>{
+    if (!r[1]) return '<tr class="none"><td class="ck"></td><td><span class="pill p-NONE"><i></i>'+r[0]+'</span></td><td class="num">x</td><td class="nonec" colspan="'+(3+def.cols.length)+'">nichts bis Floor '+kitBand+'</td></tr>';
+    const on = !!done[r[1]];
+    return '<tr><td class="ck"><input type="checkbox" data-chk="'+r[1]+'" aria-label="'+r[0]+' erledigt"'+(on?" checked":"")+'></td>'
+      +'<td><span class="pill p-'+r[4]+'"><i></i>'+r[0]+'</span></td><td class="num">'+r[2]+'</td>'
+      +'<td><span class="'+(on?"strike":"")+'">'+title(r[1])+'</span></td><td class="num">'+loc(r[3],3)+' %</td><td class="num">'+n(r[5])+'</td>'
+      +r.slice(6).map(x=>'<td class="num">'+x+'</td>').join("")+'</tr>';
   }).join("");
-  return '<div class="chkh"><div><h3 class="grp" style="margin:0">Amboss / Ofen Set Progression <span class="muted">['+st.label+']</span></h3><div class="muted" id="chkCnt">'+cnt+' / '+tot+' erledigt</div></div><button class="btn" data-reset="1">Zurücksetzen</button></div>'
-    +'<div class="prog"><div id="chkBar" style="width:'+(tot?100*cnt/tot:0)+'%"></div></div>'
-    +'<div class="bar">'+chips+'</div>'
-    +'<div class="tbl"><table style="min-width:0"><tr><th></th><th>Teil</th><th class="num">Ebene</th><th>Gegenstandsname</th></tr>'+rows+'</table></div>'
-    +'<p class="foot">'+st.note+' Namen sind die Blueprint-IDs aus den Configs, nicht die deutschen Ingame-Namen. Häkchen bleiben im Browser gespeichert.</p>';
+  return '<div class="chkh"><div><h3 class="grp" style="margin:0">'+def.label+' Kit <span class="muted">[bis Floor '+kitBand+']</span></h3><div class="muted">'+cnt+' / '+tot+' erledigt</div></div><button class="btn" data-reset="1">Zurücksetzen</button></div>'
+    +'<div class="prog"><div style="width:'+(tot?100*cnt/tot:0)+'%"></div></div>'
+    +'<div class="bar">'+kitBar+'</div><div class="bar">'+bandBar+'</div>'
+    +'<div class="tbl"><table style="min-width:0">'+head+body+'</table></div>'
+    +'<p class="foot">'+(kitSel==="tank" ? 'Summe Schutz: <b>'+n(sum)+'</b>. ' : '')+def.note+' Kits sind eine Empfehlung aus den Config-Daten, kein Spielfeature. Namen sind Blueprint-IDs. Häkchen gelten pro Kit und bleiben im Browser gespeichert.</p>';
 }
 const TABS = [["tasche","Gadget-Tasche",viewBag],["gadgets","Gadgets",viewGadgets],["voll","Komplettwege",viewFull],["schwerter","Schwerter",viewSwords],["tools","Werkzeuge",viewTools],["combo","Combo-Chest",viewCombo],["kits","Kits",viewKits],["rechner","Rechner",viewCalc],["baum","Übersicht",viewTree]];
 let tab = "gadgets";
@@ -476,9 +467,7 @@ function draw(){
 document.addEventListener("click", e=>{
   const act = e.target.closest("[data-act]");
   if (act) { document.querySelectorAll("details.mod").forEach(d=>{ d.open = act.dataset.act==="open"; }); return; }
-  const cs = e.target.closest("[data-stage]");
-  if (cs) { chkStage = cs.dataset.stage; chkSave(); draw(); return; }
-  if (e.target.closest("[data-reset]")) { chkDone[chkStage] = {}; chkSave(); draw(); return; }
+  if (e.target.closest("[data-reset]")) { kitDone[kitSel] = {}; kitSave(); draw(); return; }
   const kb = e.target.closest("[data-kit],[data-band]");
   if (kb) {
     if (kb.dataset.kit) kitSel = kb.dataset.kit; else kitBand = kb.dataset.band;
@@ -497,7 +486,7 @@ document.addEventListener("click", e=>{
 });
 document.addEventListener("change", e=>{
   const c = e.target.closest("[data-chk]"); if (!c) return;
-  (chkDone[chkStage] = chkDone[chkStage] || {})[c.dataset.chk] = c.checked; chkSave(); draw();
+  (kitDone[kitSel] = kitDone[kitSel] || {})[c.dataset.chk] = c.checked; kitSave(); draw();
 });
 draw();
 </script>
