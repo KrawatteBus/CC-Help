@@ -432,6 +432,8 @@ let kitDone = {};
 try { kitDone = JSON.parse(localStorage.getItem("ccKitDone")||"{}") || {}; } catch(e) {}
 function kitSave(){ try { localStorage.setItem("ccKitDone", JSON.stringify(kitDone)); } catch(e) {} }
 function viewKits(){
+  if (!KITDEF[kitSel]) kitSel = "tank";
+  if (!D.kits.kits[kitSel][kitBand]) kitBand = "10";
   const K = D.kits, def = KITDEF[kitSel], rows = K.kits[kitSel][kitBand], done = kitDone[kitSel] || {};
   const chip = (attr,key,label,on) => '<button class="btn" '+attr+'="'+key+'" aria-pressed="'+on+'">'+label+'</button>';
   const kitBar = Object.keys(KITDEF).map(k=>chip("data-kit",k,KITDEF[k].label,k===kitSel)).join("");
