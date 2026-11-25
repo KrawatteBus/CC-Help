@@ -427,10 +427,11 @@ const KITDEF = {
   tank: {label:"Tank", val:"Schutz", cols:["Verteid.-Tier","Attribut-Tier"], note:"Pro Slot das Teil mit dem höchsten Schutz. Tier (1–10) ist die Qualität der Modifier-Gruppen Verteidigung (Verteidigung, Ausweichen, Schild) und Attribut (u. a. Vitalität). Bei gleichem Schutz gewinnt das höhere Tier."},
   gather: {label:"Holzfäller & Bergbauer", val:"Speed / Schutz", cols:["Skill-Tier","Ertrag-Chance"], note:"Axt und Spitzhacke nach Speed, danach Rüstung mit dem höchsten Skill-Tier. Die Skill-Gruppe würfelt zufällig einen von 5 Modifiern (Holz-/Berg-Ertrag, Holz-/Berg-XP, Angel-XP)."},
   coins: {label:"Aincrad Coins", val:"Schaden / Schutz", cols:["Tier","Coin-Menge"], note:"Teile mit dem höchsten Tier der Gruppe Sonstiges. Sie würfelt einen von 9 Modifiern, 3 davon erhöhen Coins (Coin-Chance und Coin-Menge als Zahl oder Faktor). Gezeigt ist der Faktor für Coin-Menge."},
+  check: {label:"Amboss / Ofen Checkliste", val:"", cols:[], note:""},
   mats: {label:"Aincrad Material", val:"Schaden / Schutz", cols:["Tier","Material-Chance"], note:"Gleiche Teile wie beim Coins-Kit, weil dieselbe Gruppe Sonstiges beides würfelt. Nur 1 von 9 Modifiern ist die Material-Drop-Chance. Gezeigt ist deren Faktor."}
 };
 function viewKits(){
-  const K = D.kits, def = KITDEF[kitSel], rows = K.kits[kitSel][kitBand];
+  const K = D.kits, def = KITDEF[kitSel], rows = kitSel==="check" ? [] : K.kits[kitSel][kitBand];
   const chip = (attr,key,label,on) => '<button class="btn" '+attr+'="'+key+'" aria-pressed="'+on+'">'+label+'</button>';
   const kitBar = Object.keys(KITDEF).map(k=>chip("data-kit",k,KITDEF[k].label,k===kitSel)).join("");
   const bandBar = K.bands.map(b=>chip("data-band",b,b,String(b)===kitBand)).join("");
@@ -438,9 +439,9 @@ function viewKits(){
   const head = '<tr><th>Slot</th><th>Teil</th><th class="num">Floor</th><th class="num">Chance</th><th>Seltenheit</th><th class="num">'+def.val+'</th>'+def.cols.map(c=>'<th class="num">'+c+'</th>').join("")+'</tr>';
   const body = rows.map(r=>'<tr><th scope="row">'+r[0]+'</th><td>'+(r[1]?'<b>'+title(r[1])+'</b>':"–")+'</td><td class="num">'+(r[1]?r[2]:"–")+'</td><td class="num">'+(r[1]?loc(r[3],3)+" %":"–")+'</td>'+(r[1]?rarTd(r[4]):"<td>–</td>")+'<td class="num">'+(r[1]?n(r[5]):"–")+'</td>'+r.slice(6).map(x=>'<td class="num">'+x+'</td>').join("")+'</tr>').join("");
   return '<div class="info" style="margin-top:0">Kits bestehen aus Teilen, die ein Aincrad-Mob als Blueprint droppt. Du wählst die Stufe („bis Floor“) und siehst das beste Teil je Slot, das bis dahin droppt. Die Kits sind eine Empfehlung aus den Config-Daten, kein Spielfeature.</div>'
-    +'<div class="bar">'+kitBar+'</div><div class="bar">'+bandBar+'</div>'
+    +'<div class="bar">'+kitBar+'</div>'+(kitSel==='check' ? viewCheck() : '<div class="bar">'+bandBar+'</div>'
     +'<div class="tbl"><table>'+head+body+'</table></div>'
-    +(kitSel==="tank" ? '<p class="foot">Summe Schutz: <b>'+n(sum)+'</b>. '+def.note+'</p>' : '<p class="foot">'+def.note+'</p>');
+    +(kitSel==="tank" ? '<p class="foot">Summe Schutz: <b>'+n(sum)+'</b>. '+def.note+'</p>' : '<p class="foot">'+def.note+'</p>'));
 }
 let chkStage = "early", chkDone = {};
 try { const c = JSON.parse(localStorage.getItem("ccCheck")||"{}"); chkDone = c.done || {}; if (c.stage) chkStage = c.stage; } catch(e) {}
@@ -461,14 +462,14 @@ function viewCheck(){
     +'<div class="tbl"><table style="min-width:0"><tr><th></th><th>Teil</th><th class="num">Ebene</th><th>Gegenstandsname</th></tr>'+rows+'</table></div>'
     +'<p class="foot">'+st.note+' Namen sind die Blueprint-IDs aus den Configs, nicht die deutschen Ingame-Namen. Häkchen bleiben im Browser gespeichert.</p>';
 }
-const TABS = [["tasche","Gadget-Tasche",viewBag],["gadgets","Gadgets",viewGadgets],["voll","Komplettwege",viewFull],["schwerter","Schwerter",viewSwords],["tools","Werkzeuge",viewTools],["combo","Combo-Chest",viewCombo],["kits","Kits",viewKits],["rechner","Rechner",viewCalc],["check","Checkliste",viewCheck],["baum","Übersicht",viewTree]];
+const TABS = [["tasche","Gadget-Tasche",viewBag],["gadgets","Gadgets",viewGadgets],["voll","Komplettwege",viewFull],["schwerter","Schwerter",viewSwords],["tools","Werkzeuge",viewTools],["combo","Combo-Chest",viewCombo],["kits","Kits",viewKits],["rechner","Rechner",viewCalc],["baum","Übersicht",viewTree]];
 let tab = "gadgets";
 function draw(){
   document.getElementById("tabs").innerHTML = TABS.map(t=>'<button class="tab" role="tab" aria-selected="'+(t[0]===tab)+'" data-tab="'+t[0]+'">'+t[1]+'</button>').join("");
   document.getElementById("view").innerHTML = TABS.find(t=>t[0]===tab)[2]();
   if (tab==="rechner") initCalc();
-  const noSheet = tab==="baum" || tab==="voll" || tab==="schwerter" || tab==="tools" || tab==="combo" || tab==="rechner" || tab==="kits" || tab==="check";
-  document.getElementById("legend").hidden = tab==="schwerter" || tab==="tools" || tab==="combo" || tab==="rechner" || tab==="kits" || tab==="check";
+  const noSheet = tab==="baum" || tab==="voll" || tab==="schwerter" || tab==="tools" || tab==="combo" || tab==="rechner" || tab==="kits";
+  document.getElementById("legend").hidden = tab==="schwerter" || tab==="tools" || tab==="combo" || tab==="rechner" || tab==="kits";
   document.getElementById("sheet").hidden = noSheet;
   if (!noSheet) renderSheet(sel.kind,sel.id,sel.level);
 }
